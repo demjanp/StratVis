@@ -34,6 +34,7 @@ class Model(Store):
 		self.areas = {}  # {label: [obj_id, ...], ...}
 		self.relations = []  # [[obj_id1, obj_id2, label], ...]
 		self.obj_id_lookup = {}  # {node_id: [obj_id, ...], ...}
+		self.graph_all = None
 		
 		self._last_changed = -1
 		
@@ -76,6 +77,7 @@ class Model(Store):
 		self.areas.clear()
 		self.relations.clear()
 		self.obj_id_lookup.clear()
+		self.graph_all = None
 	
 	def load_data(self):
 		
@@ -84,6 +86,9 @@ class Model(Store):
 		for cls in [feature_cls, feature_descr, area_cls, area_descr]:
 			if (cls is None) or (cls not in self.classes):
 				return
+		
+		self.graph_all = nx.Graph()
+		
 		for feature_id in self.classes[feature_cls].objects:
 			self.features[feature_id] = str(self.objects[feature_id].descriptors[feature_descr].label.value)
 		for area_id in self.classes[area_cls].objects:
@@ -99,6 +104,7 @@ class Model(Store):
 				if rel in STRAT_RELATIONS:
 					for feature_id2 in self.objects[feature_id1].relations[rel]:
 						self.relations.append([feature_id1, feature_id2, rel])
+						self.graph_all.add_edge(feature_id1, feature_id2)
 	
 	def get_areas(self):
 		# returns areas = {label: [obj_id, ...], ...}
@@ -132,7 +138,9 @@ class Model(Store):
 	def get_node_objects(self, node_id):
 		
 		if node_id in self.obj_id_lookup:
-			return self.obj_id_lookup[node_id]
+			obj_ids = set(self.obj_id_lookup[node_id])
+			obj_ids.update(find_all_connected(self.graph_all, obj_ids))
+			return sorted(list(obj_ids))
 		return []
 	
 	def get_feature_id(self, obj_id):

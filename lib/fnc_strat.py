@@ -484,4 +484,10 @@ def get_graph_elements(features, relations, circular_only, join_contemporary, so
 	
 	return nodes, edges, positions, obj_id_lookup
 	
+def find_all_connected(G, node_ids):
 	
+	collect = set(node_ids)
+	for node_id1, node_id2 in combinations(node_ids, 2):
+		path = nx.shortest_path(G, node_id1, node_id2)
+		collect.update(path)
+	return collect
