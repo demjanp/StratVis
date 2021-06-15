@@ -1,7 +1,7 @@
 
-from deposit.store.Store import Store
-from deposit.commander.Registry import Registry
-import deposit
+from deposit import Store
+from deposit.gui import Registry
+import deposit.gui.res
 import res
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
@@ -89,7 +89,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		path = os.path.join(os.path.dirname(res.__file__), name)
 		if os.path.isfile(path):
 			return QtGui.QIcon(path)
-		path = os.path.join(os.path.dirname(deposit.__file__), "res", name)
+		path = os.path.join(os.path.dirname(deposit.gui.res.__file__), name)
 		if os.path.isfile(path):
 			return QtGui.QIcon(path)
 		raise Exception("Could not load icon", name)

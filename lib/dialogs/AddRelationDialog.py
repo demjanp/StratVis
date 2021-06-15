@@ -1,6 +1,5 @@
 
-from lib.dialogs._Dialog import (Dialog)
-from lib.Button import (Button)
+from deposit.gui import (Dialog, Button)
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
 
@@ -13,7 +12,7 @@ REL_VALUES = [
 	["overlaps", "Overlaps"],
 ]
 
-class AddRelation(Dialog):
+class AddRelationDialog(Dialog):
 	
 	def title(self):
 		
@@ -34,7 +33,7 @@ class AddRelation(Dialog):
 		self.feature_label2 = QtWidgets.QLabel()
 		self.feature_label2.setFont(font)
 		self.relation_combo = QtWidgets.QComboBox()
-		switch_button = Button("Switch", self.on_switch, "switch.svg")
+		switch_button = Button("Switch", self.on_switch, self.view.get_icon("switch.svg"))
 		switch_button.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
 		self.relation_combo.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 		combo_frame = QtWidgets.QFrame()

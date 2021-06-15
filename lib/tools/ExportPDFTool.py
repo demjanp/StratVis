@@ -1,6 +1,6 @@
-from lib.toolbar._Tool import (Tool)
+from deposit.gui import (Tool)
 
-class ExportPDF(Tool):
+class ExportPDFTool(Tool):
 	
 	def name(self):
 		

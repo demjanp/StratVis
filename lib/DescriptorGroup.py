@@ -1,22 +1,15 @@
 
-from lib.Button import (Button)
-from lib.LineEdit import (LineEdit)
-
-from deposit.DModule import (DModule)
-from deposit import Broadcasts
+from deposit.gui import (Button, LineEdit, Combo, SubView)
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
 
-class DescriptorGroup(DModule, QtWidgets.QGroupBox):
+class DescriptorGroup(SubView, QtWidgets.QGroupBox):
 	
 	load_data = QtCore.Signal()
 	
-	def __init__(self, view):
+	def __init__(self, model, view):
 		
-		self.view = view
-		self.model = view.model
-		
-		DModule.__init__(self)
+		SubView.__init__(self, model, view)
 		QtWidgets.QGroupBox.__init__(self, "Class / Descriptors")
 		
 		self.setLayout(QtWidgets.QVBoxLayout())
@@ -38,9 +31,8 @@ class DescriptorGroup(DModule, QtWidgets.QGroupBox):
 		
 		self.update()
 		
-		self.connect_broadcast(Broadcasts.STORE_LOADED, self.on_store_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_SOURCE_CHANGED, self.on_store_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_CHANGED, self.on_store_changed)
+		self.model.signal_data_source_changed.connect(self.on_data_changed)
+		self.model.signal_data_changed.connect(self.on_data_changed)
 	
 	def update(self):
 		
@@ -61,7 +53,8 @@ class DescriptorGroup(DModule, QtWidgets.QGroupBox):
 		
 		return feature_cls, feature_descr, area_cls, area_descr
 	
-	def on_store_changed(self, *args):
+	@QtCore.Slot()
+	def on_data_changed(self):
 		
 		self.update()
 	

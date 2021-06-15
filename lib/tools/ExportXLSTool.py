@@ -1,6 +1,6 @@
-from lib.toolbar._Tool import (Tool)
+from deposit.gui import (Tool)
 
-class ExportXLS(Tool):
+class ExportXLSTool(Tool):
 	
 	def name(self):
 		

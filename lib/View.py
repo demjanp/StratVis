@@ -1,51 +1,46 @@
+from deposit.gui import (DView, DMenu, DToolbar, Dialogs, GraphView, Separator)
 
-from lib.fnc_export import *
+from lib.dialogs.ConnectDialog import ConnectDialog
+from lib.dialogs.AddRelationDialog import AddRelationDialog
+from lib.dialogs.AboutDialog import AboutDialog
 
-from lib.Model import (Model)
-from lib.dialogs._Dialogs import (Dialogs)
-from lib.toolbar._Toolbar import (Toolbar)
-from lib.menu._Menu import Menu
-from lib.StatusBar import (StatusBar)
-from lib.Progress import (Progress)
-from lib.DescriptorGroup import (DescriptorGroup)
-from lib.AreaGroup import (AreaGroup)
-from lib.StratigraphyGroup import (StratigraphyGroup)
+from deposit.gui import (ConnectTool, SaveTool, SaveAsFileTool, DepositTool, ClearRecentTool, AboutTool, LogFileTool)
+from lib.tools.ExportChangesTool import ExportChangesTool
+from lib.tools.ExportPDFTool import ExportPDFTool
+from lib.tools.ExportXLSTool import ExportXLSTool
+from lib.tools.SaveTool import SaveTool
+from lib.tools.UndoTool import UndoTool
 
-from deposit import Broadcasts
-from deposit.DModule import (DModule)
-from deposit.commander.Registry import (Registry)
-from deposit.commander.frames.GraphVisView import (GraphVisView)
+from lib.DescriptorGroup import DescriptorGroup
+from lib.AreaGroup import AreaGroup
+from lib.StratigraphyGroup import StratigraphyGroup
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
-from pathlib import Path
-import deposit
-import res
-import os
 
-class View(DModule, QtWidgets.QMainWindow):
+class View(DView):
 	
-	def __init__(self):
+	APP_NAME = "StratVis"
+	
+	def __init__(self, model):
 		
-		self.model = None
+		DView.__init__(self, model)
 		
-		DModule.__init__(self)
-		QtWidgets.QMainWindow.__init__(self)
+		self.dialogs = Dialogs(self, [ConnectDialog, AddRelationDialog, AboutDialog])
+		self.toolbar = DToolbar(self, {
+			"Data": [ConnectTool, SaveTool, DepositTool, Separator, UndoTool, Separator, ExportChangesTool, ExportXLSTool, ExportPDFTool],
+		})
+		self.menu = DMenu(self, {
+			"Data": [ConnectTool, SaveTool, SaveAsFileTool, DepositTool, Separator, ClearRecentTool,],
+			"Edit": [UndoTool,],
+			"Export": [ExportChangesTool, ExportXLSTool, ExportPDFTool,],
+			"Help": [AboutTool,],
+		})
+		self.graph_view = GraphView()
+		self.descriptor_group = DescriptorGroup(self.model, self)
+		self.area_group = AreaGroup(self.model, self)
+		self.stratigraphy_group = StratigraphyGroup(self.model, self)
 		
-		self.model = Model(self)
-		
-		self.registry = Registry("Deposit")
-		self.dialogs = Dialogs(self)
-		self.toolbar = Toolbar(self)
-		self.menu = Menu(self)
-		self.statusbar = StatusBar(self)
-		self.progress = Progress(self)
-		self.graph_view = GraphVisView()
-		self.descriptor_group = DescriptorGroup(self)
-		self.area_group = AreaGroup(self)
-		self.stratigraphy_group = StratigraphyGroup(self)
-		
-		self.setWindowIcon(self.get_icon("sv_icon.svg"))
-		self.setStyleSheet("QPushButton {padding: 5px; min-width: 100px;}")
+		self.set_icon("sv_icon.svg")
 		
 		central_widget = QtWidgets.QWidget(self)
 		central_widget.setLayout(QtWidgets.QHBoxLayout())
@@ -72,59 +67,27 @@ class View(DModule, QtWidgets.QMainWindow):
 		
 		graph_view_frame.layout().addWidget(self.graph_view)
 		
-		self.setStatusBar(self.statusbar)
-		
-		self.menu.load_recent()
-		
-		self.set_title()
-#		self.setGeometry(100, 100, 1024, 768)
-		self.setGeometry(500, 100, 1024, 768)  # DEBUG
-		
 		self.descriptor_group.load_data.connect(self.on_load_data)
 		self.area_group.area_changed.connect(self.on_area_changed)
 		self.stratigraphy_group.add_relation.connect(self.on_add_relation)
 		self.stratigraphy_group.remove_relation.connect(self.on_remove_relation)
 		self.stratigraphy_group.reverse_relation.connect(self.on_reverse_relation)
 		self.stratigraphy_group.settings_changed.connect(self.on_strat_settings_changed)
-		self.graph_view.selected.connect(self.on_graph_selected)
-		self.graph_view.activated.connect(self.on_graph_activated)
+		self.graph_view.signal_selected.connect(self.on_graph_selected)
+		self.graph_view.signal_activated.connect(self.on_graph_activated)
 		
-		self.connect_broadcast(Broadcasts.VIEW_ACTION, self.on_view_action)
-		self.connect_broadcast(Broadcasts.STORE_LOADED, self.on_data_source_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_SOURCE_CHANGED, self.on_data_source_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_CHANGED, self.on_data_changed)
-		self.connect_broadcast(Broadcasts.STORE_SAVED, self.on_saved)
-		self.connect_broadcast(Broadcasts.STORE_SAVE_FAILED, self.on_save_failed)
-		self.set_on_broadcast(self.on_broadcast)
-		
-		self.model.broadcast_timer.setSingleShot(True)
-		self.model.broadcast_timer.timeout.connect(self.on_broadcast_timer)
+		self.model.signal_data_source_changed.connect(self.on_data_source_changed)
 		
 		self.update()
 		
-		self.dialogs.open("Connect")
-	
-	def set_title(self, name = None):
-
-		title = "StratVis"
-		if name is None:
-			self.setWindowTitle(title)
-		else:
-			self.setWindowTitle("%s - %s" % (name, title))
-	
-	def update_mrud(self):
+		self.dialogs.open("ConnectDialog")
 		
-		if self.model.data_source is None:
-			return
-		if self.model.data_source.connstr is None:
-			self.menu.add_recent_url(self.model.data_source.url)
-		else:
-			self.menu.add_recent_db(self.model.data_source.identifier, self.model.data_source.connstr)
-	
 	def update(self):
 		
-		if self.model.is_connected():
-			self.set_title(os.path.split(str(self.model.identifier))[-1].strip("#"))
+		self.model.set_area(self.get_area())
+		self.model.set_strat_settings(*self.get_strat_settings())
+		self.model.set_descriptors(*self.get_descriptors())
+		
 		area = self.get_area()
 		areas = list(self.model.get_areas().keys())
 		self.area_group.set_areas(areas, area)
@@ -132,27 +95,7 @@ class View(DModule, QtWidgets.QMainWindow):
 		self.descriptor_group.update()
 		self.area_group.update()
 		self.stratigraphy_group.update()
-	
-	def save(self):
-		
-		if self.model.data_source is None:
-			self.dialogs.open("Connect")
-			
-		else:
-			self.progress.show("Saving...")
-			self.model.save()
-			self.progress.reset()
-	
-	def get_icon(self, name):
 
-		path = os.path.join(os.path.dirname(res.__file__), name)
-		if os.path.isfile(path):
-			return QtGui.QIcon(path)
-		path = os.path.join(os.path.dirname(deposit.__file__), "res", name)
-		if os.path.isfile(path):
-			return QtGui.QIcon(path)
-		raise Exception("Could not load icon", name)
-	
 	def get_descriptors(self):
 		# returns feature_cls, feature_descr, area_cls, area_descr
 		
@@ -235,7 +178,7 @@ class View(DModule, QtWidgets.QMainWindow):
 			return
 		self.graph_view.save_pdf(path)
 		self.registry.set("export_dir", os.path.split(path)[0])
-
+	
 	@QtCore.Slot()
 	def on_load_data(self):
 		
@@ -307,54 +250,12 @@ class View(DModule, QtWidgets.QMainWindow):
 			return
 		obj_ids = self.model.get_node_objects(node_id)
 		self.model.launch_deposit()
-		self.model.dc.view.query("SELECT %s.* WHERE id(%s) in {%s}" % (feature_cls, feature_cls, ",".join([str(obj_id) for obj_id in obj_ids])))
+		self.model.deposit_gui.view.query("SELECT %s.* WHERE id(%s) in {%s}" % (feature_cls, feature_cls, ",".join([str(obj_id) for obj_id in obj_ids])))
 	
-	def on_view_action(self, *args):
+	@QtCore.Slot(int)
+	def on_data_source_changed(self):
 		
-		pass
-	
-	def on_broadcast(self, signals):
-		
-		if (Broadcasts.STORE_SAVED in signals) or (Broadcasts.STORE_SAVE_FAILED in signals):
-			self.process_broadcasts()
-		else:
-			self.model.broadcast_timer.start(100)
-	
-	def on_broadcast_timer(self):
-
-		self.process_broadcasts()
-	
-	def on_data_source_changed(self, *args):
-		
-		self.set_title(os.path.split(str(self.model.identifier))[-1].strip("#"))
-		self.statusbar.message("")
-		self.update_mrud()
+		DView.on_data_source_changed(self)
 		self.update_graph()
 		self.update()
 	
-	def on_data_changed(self, *args):
-		
-		self.statusbar.message("")
-	
-	def on_saved(self, *args):
-		
-		self.statusbar.message("Database saved.")
-	
-	def on_save_failed(self, *args):
-		
-		self.statusbar.message("Saving failed!")
-	
-	def closeEvent(self, event):
-		
-		if not self.model.is_saved():
-			reply = QtWidgets.QMessageBox.question(self, "Exit", "Save changes to database?", QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No | QtWidgets.QMessageBox.Cancel)
-			if reply == QtWidgets.QMessageBox.Yes:
-				self.save()
-			elif reply == QtWidgets.QMessageBox.No:
-				pass
-			else:
-				event.ignore()
-				return
-		
-		self.model.on_close()
-		QtWidgets.QMainWindow.closeEvent(self, event)

@@ -1,25 +1,18 @@
 
-from lib.Button import (Button)
-from lib.CheckBox import (CheckBox)
-
-from deposit.DModule import (DModule)
-from deposit import Broadcasts
+from deposit.gui import (Button, CheckBox, SubView)
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
 
-class StratigraphyGroup(DModule, QtWidgets.QGroupBox):
+class StratigraphyGroup(SubView, QtWidgets.QGroupBox):
 	
 	add_relation = QtCore.Signal()
 	remove_relation = QtCore.Signal()
 	reverse_relation = QtCore.Signal()
 	settings_changed = QtCore.Signal()
 	
-	def __init__(self, view):
+	def __init__(self, model, view):
 		
-		self.view = view
-		self.model = view.model
-		
-		DModule.__init__(self)
+		SubView.__init__(self, model, view)
 		QtWidgets.QGroupBox.__init__(self, "Stratigraphy")
 		
 		self.setLayout(QtWidgets.QVBoxLayout())
@@ -40,9 +33,8 @@ class StratigraphyGroup(DModule, QtWidgets.QGroupBox):
 		
 		self.update()
 		
-		self.connect_broadcast(Broadcasts.STORE_LOADED, self.on_data_source_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_SOURCE_CHANGED, self.on_data_source_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_CHANGED, self.on_data_changed)
+		self.model.signal_data_source_changed.connect(self.on_data_changed)
+		self.model.signal_data_changed.connect(self.on_data_changed)
 	
 	def update(self):
 		
@@ -91,10 +83,8 @@ class StratigraphyGroup(DModule, QtWidgets.QGroupBox):
 		
 		self.settings_changed.emit()
 	
-	def on_data_source_changed(self, *args):
+	@QtCore.Slot()
+	def on_data_changed(self):
 		
 		self.update()
-	
-	def on_data_changed(self, *args):
-		
-		self.update()
+

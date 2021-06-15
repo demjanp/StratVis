@@ -1,16 +1,11 @@
+from deposit.gui import (DModel)
 
 from lib.fnc_strat import *
 from lib.fnc_export import *
 
 from lib.History import (History)
 
-from deposit import (Broadcasts)
-from deposit.store.Store import (Store)
-from deposit.commander.Commander import (Commander)
-
-from PySide2 import (QtCore, QtGui)
 from natsort import natsorted
-import numpy as np
 
 STRAT_RELATIONS = ["included_by", "same_as", "cut_by", "covered_by", "abutted_by", "overlaps"]
 
@@ -23,44 +18,26 @@ STRAT_RELATIONS_DICT = {
 	"Overlaps": "overlaps",
 }
 
-class Model(Store):
+class Model(DModel):
 	
-	def __init__(self, view):
-		
-		self.view = view
-		self.dc = None
+	def __init__(self):
 		
 		self.features = {}  # {obj_id: label, ...}
 		self.areas = {}  # {label: [obj_id, ...], ...}
 		self.relations = []  # [[obj_id1, obj_id2, label], ...]
 		self.obj_id_lookup = {}  # {node_id: [obj_id, ...], ...}
 		self.graph_all = None
+		self._descriptors = None  # (feature_cls, feature_descr, area_cls, area_descr)
+		self._area = None
+		self._strat_settings = None # (circular_only, join_contemporary, sort_by_phasing)
 		
-		self._last_changed = -1
-		
-		Store.__init__(self, parent = self.view)
+		DModel.__init__(self)
 		
 		self.history = History()
-		
-		self.broadcast_timer = QtCore.QTimer()
-	
-	def set_datasource(self, data_source):
-		
-		self.history.clear()
-		
-		Store.set_datasource(self, data_source)
-	
-	def is_connected(self):
-		
-		return (self.data_source is not None) and (self.data_source.identifier is not None)
-	
-	def is_saved(self):
-		
-		return self._last_changed == self.changed
 	
 	def has_history(self):
 		
-		return False
+		return self.history.can_undo()
 	
 	def has_data(self):
 		
@@ -68,7 +45,8 @@ class Model(Store):
 	
 	def clear(self):
 		
-		Store.clear(self)
+		DModel.clear(self)
+		
 		self.clear_data()
 	
 	def clear_data(self):
@@ -79,10 +57,25 @@ class Model(Store):
 		self.obj_id_lookup.clear()
 		self.graph_all = None
 	
+	def set_area(self, area):
+		
+		self._area = area
+	
+	def set_strat_settings(self, circular_only, join_contemporary, sort_by_phasing):
+		
+		self._strat_settings = (circular_only, join_contemporary, sort_by_phasing)
+	
+	def set_descriptors(self, feature_cls, feature_descr, area_cls, area_descr):
+		
+		self._descriptors = (feature_cls, feature_descr, area_cls, area_descr)
+	
 	def load_data(self):
 		
 		self.clear_data()
-		feature_cls, feature_descr, area_cls, area_descr = self.view.get_descriptors()
+		
+		if self._descriptors is None:
+			return
+		feature_cls, feature_descr, area_cls, area_descr = self._descriptors
 		for cls in [feature_cls, feature_descr, area_cls, area_descr]:
 			if (cls is None) or (cls not in self.classes):
 				return
@@ -120,16 +113,20 @@ class Model(Store):
 		# edges = [[source_id, target_id, label, color], ...]
 		# positions = {node_id: (x, y), ...}
 		
-		area = self.view.get_area()
-		if area not in self.areas:
-			return {}, [], {}
+		empty = ({}, [], {})
+		
+		if self._strat_settings is None:
+			return empty
+		
+		if self._area not in self.areas:
+			return empty
+		
+		circular_only, join_contemporary, sort_by_phasing = self._strat_settings
 		
 		if not self.has_data():
 			self.load_data()
-		features = dict([(obj_id, self.features[obj_id]) for obj_id in self.features if obj_id in self.areas[area]])
-		relations = [[source_id, target_id, label] for source_id, target_id, label in self.relations if (source_id in self.areas[area]) and (target_id in self.areas[area])]
-		
-		circular_only, join_contemporary, sort_by_phasing = self.view.get_strat_settings()
+		features = dict([(obj_id, self.features[obj_id]) for obj_id in self.features if obj_id in self.areas[self._area]])
+		relations = [[source_id, target_id, label] for source_id, target_id, label in self.relations if (source_id in self.areas[self._area]) and (target_id in self.areas[self._area])]
 		
 		nodes, edges, positions, self.obj_id_lookup = get_graph_elements(features, relations, circular_only, join_contemporary, sort_by_phasing)
 		
@@ -248,17 +245,8 @@ class Model(Store):
 		# edges = [[source_id, target_id, label, color], ...]
 		export_stratigraphy(nodes, edges, path)
 	
-	def launch_deposit(self):
+	def data_source_changed_event(self):
 		
-		if self.dc is None:
-			self.dc = Commander(model = self)
-		self.dc.view.show()
-		self.dc.view.activateWindow()
-		self.dc.view.resume_broadcasts()
-	
-	def on_close(self):
-		
-		if self.dc is not None:
-			self.dc.close()
-
+		self.history.clear()
+		DModel.data_source_changed_event(self)
 

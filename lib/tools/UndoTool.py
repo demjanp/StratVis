@@ -1,6 +1,6 @@
-from lib.toolbar._Tool import (Tool)
+from deposit.gui import (Tool)
 
-class Undo(Tool):
+class UndoTool(Tool):
 	
 	def name(self):
 		

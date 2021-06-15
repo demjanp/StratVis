@@ -1,21 +1,15 @@
 
-from lib.Combo import (Combo)
-
-from deposit.DModule import (DModule)
-from deposit import Broadcasts
+from deposit.gui import (Combo, SubView)
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
 
-class AreaGroup(DModule, QtWidgets.QGroupBox):
+class AreaGroup(SubView, QtWidgets.QGroupBox):
 	
 	area_changed = QtCore.Signal()
 	
-	def __init__(self, view):
+	def __init__(self, model, view):
 		
-		self.view = view
-		self.model = view.model
-		
-		DModule.__init__(self)
+		SubView.__init__(self, model, view)
 		QtWidgets.QGroupBox.__init__(self, "Area")
 		
 		self.setLayout(QtWidgets.QVBoxLayout())
@@ -26,9 +20,8 @@ class AreaGroup(DModule, QtWidgets.QGroupBox):
 		
 		self.update()
 		
-		self.connect_broadcast(Broadcasts.STORE_LOADED, self.on_data_source_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_SOURCE_CHANGED, self.on_data_source_changed)
-		self.connect_broadcast(Broadcasts.STORE_DATA_CHANGED, self.on_data_changed)
+		self.model.signal_data_source_changed.connect(self.on_data_changed)
+		self.model.signal_data_changed.connect(self.on_data_changed)
 	
 	def update(self):
 		
@@ -51,10 +44,7 @@ class AreaGroup(DModule, QtWidgets.QGroupBox):
 		self.update()
 		self.area_changed.emit()
 	
-	def on_data_source_changed(self, *args):
-		
-		self.update()
-	
-	def on_data_changed(self, *args):
+	@QtCore.Slot()
+	def on_data_changed(self):
 		
 		self.update()

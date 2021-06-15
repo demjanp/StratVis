@@ -1,6 +1,6 @@
-from lib.toolbar._Tool import (Tool)
+from deposit.gui import (Tool)
 
-class Save(Tool):
+class SaveTool(Tool):
 
 	def name(self):
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-from lib.dialogs._Dialog import (Dialog)
+from deposit.gui import Dialog
 from lib import (__version__, __date__, __file__)
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
 import os
 
-class About(Dialog):
+class AboutDialog(Dialog):
 	
 	def title(self):
 		
