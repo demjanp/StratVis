@@ -27,6 +27,7 @@ def get_contexts(stratigraphy, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1,
 		contexts.add(context2)
 	contexts = natsorted(list(contexts))
 	contemporary = np.zeros((len(contexts), len(contexts)), dtype = np.float64)
+	contemporary_set = set([])
 	chronostrat_contexts = np.zeros((len(contexts), len(contexts)), dtype = np.float64)
 	for context1, context2, rel in stratigraphy:
 		ci1 = contexts.index(context1)
@@ -36,13 +37,14 @@ def get_contexts(stratigraphy, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1,
 		elif rel in ["included_by", "same_as"]:
 			contemporary[ci1, ci2] = rel_lookup[rel]
 			contemporary[ci2, ci1] = rel_lookup[rel]
+			contemporary_set.add((ci1, ci2))
 		elif rel == "overlaps":
 			chronostrat_contexts[ci1, ci2] = p_overlaps
 			chronostrat_contexts[ci2, ci1] = p_overlaps
 	
 	contemporary[np.diag_indices(len(contexts))] = 1
 	
-	return np.array(contexts), contemporary, chronostrat_contexts
+	return np.array(contexts), contemporary, chronostrat_contexts, contemporary_set
 
 def find_groups(relation_matrix):
 	
@@ -361,7 +363,7 @@ def get_graph_elements(features, relations, circular_only, join_contemporary, so
 		p_overlaps: "Overlaps",
 	}
 	
-	contexts, contemporary, chronostrat = get_contexts(relations, p_included_by = p_included_by, p_same_as = p_same_as, p_cut_by = p_cut_by, p_covered_by = p_covered_by, p_abutted_by = p_abutted_by)
+	contexts, contemporary, chronostrat, contemporary_set = get_contexts(relations, p_included_by = p_included_by, p_same_as = p_same_as, p_cut_by = p_cut_by, p_covered_by = p_covered_by, p_abutted_by = p_abutted_by)
 	circulars = find_circulars(contemporary, chronostrat)
 	
 	if circular_only:
@@ -479,8 +481,9 @@ def get_graph_elements(features, relations, circular_only, join_contemporary, so
 		if i == j:
 			continue
 		color = "red" if circulars[i, j] else "black"
+		if (i, j) not in contemporary_set:
+			i, j = j, i
 		edges.append([i, j, names_contemporary[contemporary[i,j]], color])
-		edges.append([j, i, names_contemporary[contemporary[i,j]], color])
 	
 	return nodes, edges, positions, obj_id_lookup
 	

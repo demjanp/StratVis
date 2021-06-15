@@ -24,7 +24,7 @@ class DescriptorGroup(SubView, QtWidgets.QGroupBox):
 		classes_frame.layout().addRow(QtWidgets.QLabel("Feature:"), self.feature_edit)
 		classes_frame.layout().addRow(QtWidgets.QLabel("Area:"), self.area_edit)
 		
-		self.load_data_button = Button("Load Data", self.on_load_data)
+		self.load_data_button = Button("Reload Graph", self.on_load_data)
 		
 		self.layout().addWidget(classes_frame)
 		self.layout().addWidget(self.load_data_button)

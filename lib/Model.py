@@ -26,6 +26,7 @@ class Model(DModel):
 		self.areas = {}  # {label: [obj_id, ...], ...}
 		self.relations = []  # [[obj_id1, obj_id2, label], ...]
 		self.obj_id_lookup = {}  # {node_id: [obj_id, ...], ...}
+		self.nodes = {}  # {node_id: label, ...}
 		self.graph_all = None
 		self._descriptors = None  # (feature_cls, feature_descr, area_cls, area_descr)
 		self._area = None
@@ -55,6 +56,7 @@ class Model(DModel):
 		self.areas.clear()
 		self.relations.clear()
 		self.obj_id_lookup.clear()
+		self.nodes.clear()
 		self.graph_all = None
 	
 	def set_area(self, area):
@@ -128,9 +130,9 @@ class Model(DModel):
 		features = dict([(obj_id, self.features[obj_id]) for obj_id in self.features if obj_id in self.areas[self._area]])
 		relations = [[source_id, target_id, label] for source_id, target_id, label in self.relations if (source_id in self.areas[self._area]) and (target_id in self.areas[self._area])]
 		
-		nodes, edges, positions, self.obj_id_lookup = get_graph_elements(features, relations, circular_only, join_contemporary, sort_by_phasing)
+		self.nodes, edges, positions, self.obj_id_lookup = get_graph_elements(features, relations, circular_only, join_contemporary, sort_by_phasing)
 		
-		return nodes, edges, positions
+		return self.nodes, edges, positions
 	
 	def get_node_objects(self, node_id):
 		
@@ -156,6 +158,14 @@ class Model(DModel):
 			return []
 		
 		return [objs_1[0], objs_2[0]]
+	
+	def find_nodes(self, text):
+		
+		node_ids = []
+		for node_id in self.nodes:
+			if self.nodes[node_id].find(text) > -1:
+				node_ids.append(node_id)
+		return node_ids
 	
 	def add_relation(self, obj_ids, rel):
 		

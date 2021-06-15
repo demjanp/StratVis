@@ -1,3 +1,6 @@
+
+from lib.fnc_export import *
+
 from deposit.gui import (DView, DMenu, DToolbar, Dialogs, GraphView, Separator)
 
 from lib.dialogs.ConnectDialog import ConnectDialog
@@ -5,6 +8,8 @@ from lib.dialogs.AddRelationDialog import AddRelationDialog
 from lib.dialogs.AboutDialog import AboutDialog
 
 from deposit.gui import (ConnectTool, SaveTool, SaveAsFileTool, DepositTool, ClearRecentTool, AboutTool, LogFileTool)
+from lib.tools.AddRelationTool import AddRelationTool
+from lib.tools.RemoveRelationTool import RemoveRelationTool
 from lib.tools.ExportChangesTool import ExportChangesTool
 from lib.tools.ExportPDFTool import ExportPDFTool
 from lib.tools.ExportXLSTool import ExportXLSTool
@@ -14,6 +19,7 @@ from lib.tools.UndoTool import UndoTool
 from lib.DescriptorGroup import DescriptorGroup
 from lib.AreaGroup import AreaGroup
 from lib.StratigraphyGroup import StratigraphyGroup
+from lib.SearchGroup import SearchGroup
 
 from PySide2 import (QtWidgets, QtCore, QtGui)
 
@@ -25,20 +31,21 @@ class View(DView):
 		
 		DView.__init__(self, model)
 		
+		self.graph_view = GraphView()
 		self.dialogs = Dialogs(self, [ConnectDialog, AddRelationDialog, AboutDialog])
 		self.toolbar = DToolbar(self, {
-			"Data": [ConnectTool, SaveTool, DepositTool, Separator, UndoTool, Separator, ExportChangesTool, ExportXLSTool, ExportPDFTool],
+			"Data": [ConnectTool, SaveTool, DepositTool, Separator, AddRelationTool, RemoveRelationTool, Separator, UndoTool, Separator, ExportChangesTool, ExportXLSTool, ExportPDFTool],
 		})
 		self.menu = DMenu(self, {
 			"Data": [ConnectTool, SaveTool, SaveAsFileTool, DepositTool, Separator, ClearRecentTool,],
-			"Edit": [UndoTool,],
+			"Edit": [AddRelationTool, RemoveRelationTool, UndoTool,],
 			"Export": [ExportChangesTool, ExportXLSTool, ExportPDFTool,],
 			"Help": [AboutTool,],
 		})
-		self.graph_view = GraphView()
 		self.descriptor_group = DescriptorGroup(self.model, self)
 		self.area_group = AreaGroup(self.model, self)
 		self.stratigraphy_group = StratigraphyGroup(self.model, self)
+		self.search_group = SearchGroup(self.model, self)
 		
 		self.set_icon("sv_icon.svg")
 		
@@ -63,6 +70,7 @@ class View(DView):
 		control_frame.layout().addWidget(self.descriptor_group)
 		control_frame.layout().addWidget(self.area_group)
 		control_frame.layout().addWidget(self.stratigraphy_group)
+		control_frame.layout().addWidget(self.search_group)
 		control_frame.layout().addStretch()
 		
 		graph_view_frame.layout().addWidget(self.graph_view)
@@ -73,6 +81,7 @@ class View(DView):
 		self.stratigraphy_group.remove_relation.connect(self.on_remove_relation)
 		self.stratigraphy_group.reverse_relation.connect(self.on_reverse_relation)
 		self.stratigraphy_group.settings_changed.connect(self.on_strat_settings_changed)
+		self.search_group.search_signal.connect(self.on_search)
 		self.graph_view.signal_selected.connect(self.on_graph_selected)
 		self.graph_view.signal_activated.connect(self.on_graph_activated)
 		
@@ -81,7 +90,7 @@ class View(DView):
 		self.update()
 		
 		self.dialogs.open("ConnectDialog")
-		
+	
 	def update(self):
 		
 		self.model.set_area(self.get_area())
@@ -198,7 +207,7 @@ class View(DView):
 		nodes, _ = self.graph_view.get_selected()
 		obj_ids = self.model.get_objects_for_relation(nodes)
 		if len(obj_ids) == 2:
-			self.dialogs.open("AddRelation", obj_ids)
+			self.dialogs.open("AddRelationDialog", obj_ids)
 	
 	@QtCore.Slot()
 	def on_remove_relation(self):
@@ -237,10 +246,20 @@ class View(DView):
 		self.update()
 		self.update_graph()
 	
+	@QtCore.Slot(str)
+	def on_search(self, text):
+		
+		node_ids = self.model.find_nodes(text)
+		if node_ids:
+			self.graph_view.deselect_all()
+			for node_id in node_ids:
+				self.graph_view.select_node(node_id)
+	
 	@QtCore.Slot()
 	def on_graph_selected(self):
 		
 		self.update()
+		self.changed_event()
 	
 	@QtCore.Slot(int)
 	def on_graph_activated(self, node_id):
