@@ -7,15 +7,16 @@ from lib.History import (History)
 
 from natsort import natsorted
 
-STRAT_RELATIONS = ["included_by", "same_as", "cut_by", "covered_by", "abutted_by", "overlaps"]
+STRAT_RELATIONS = ["included_by", "same_as", "cut_by", "covered_by", "abutted_by", "filled_by" "excludes"]
 
 STRAT_RELATIONS_DICT = {
 	"Cut by": "cut_by",
 	"Covered by": "covered_by",
 	"Abutted by": "abutted_by",
+	"Filled by": "filled_by",
 	"Included by": "included_by",
 	"Same as": "same_as",
-	"Overlaps": "overlaps",
+	"Excludes": "excludes",
 }
 
 class Model(DModel):
@@ -198,7 +199,7 @@ class Model(DModel):
 		
 		node_id1, node_id2, label = edge
 		rel = STRAT_RELATIONS_DICT[label]
-		if rel not in ["cut_by", "covered_by", "abutted_by"]:
+		if rel not in ["cut_by", "covered_by", "abutted_by", "filled_by"]:
 			return
 		obj_ids1 = self.get_node_objects(node_id1)
 		obj_ids2 = self.get_node_objects(node_id2)

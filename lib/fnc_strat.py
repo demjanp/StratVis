@@ -6,7 +6,7 @@ from itertools import combinations
 from collections import defaultdict
 from networkx.drawing.nx_agraph import graphviz_layout
 
-def get_contexts(stratigraphy, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1, p_covered_by = 0.8, p_abutted_by = 0.3, p_overlaps = 1):
+def get_contexts(stratigraphy, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1, p_covered_by = 0.8, p_abutted_by = 0.3, p_filled_by = 1, p_excludes = 1):
 	# returns contexts, contemporary, chronostrat_contexts
 	# contexts = [context, ...]
 	# contemporary[ci1, ci2] = p; ci = index in contexts; p = probability that ci1 and ci2 are contemporary
@@ -18,7 +18,8 @@ def get_contexts(stratigraphy, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1,
 		"cut_by": p_cut_by,
 		"covered_by": p_covered_by,
 		"abutted_by": p_abutted_by,
-		"overlaps": p_overlaps,
+		"filled_by": p_filled_by,
+		"excludes": p_excludes,
 	}
 	
 	contexts = set([])
@@ -32,15 +33,15 @@ def get_contexts(stratigraphy, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1,
 	for context1, context2, rel in stratigraphy:
 		ci1 = contexts.index(context1)
 		ci2 = contexts.index(context2)
-		if rel in ["cut_by", "covered_by", "abutted_by"]:
+		if rel in ["cut_by", "covered_by", "abutted_by", "filled_by"]:
 			chronostrat_contexts[ci1, ci2] = rel_lookup[rel]
 		elif rel in ["included_by", "same_as"]:
 			contemporary[ci1, ci2] = rel_lookup[rel]
 			contemporary[ci2, ci1] = rel_lookup[rel]
 			contemporary_set.add((ci1, ci2))
-		elif rel == "overlaps":
-			chronostrat_contexts[ci1, ci2] = p_overlaps
-			chronostrat_contexts[ci2, ci1] = p_overlaps
+		elif rel == "excludes":
+			chronostrat_contexts[ci1, ci2] = p_excludes
+			chronostrat_contexts[ci2, ci1] = p_excludes
 	
 	contemporary[np.diag_indices(len(contexts))] = 1
 	
@@ -319,7 +320,7 @@ def get_phasing(G):
 	
 	return phasing
 
-def get_graph_elements(features, relations, circular_only, join_contemporary, sort_by_phasing, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1, p_covered_by = 0.8, p_abutted_by = 0.3, p_overlaps = 1, xscale = 1, yscale = 1):
+def get_graph_elements(features, relations, circular_only, join_contemporary, sort_by_phasing, p_included_by = 1, p_same_as = 0.5, p_cut_by = 1, p_covered_by = 0.8, p_abutted_by = 0.3, p_filled_by = 1, p_excludes = 1, xscale = 1, yscale = 1):
 	# features = {obj_id: label, ...}
 	# relations = [[obj_id1, obj_id2, label], ...]
 	# circular_only, join_contemporary, sort_by_phasing = True/False
@@ -350,7 +351,7 @@ def get_graph_elements(features, relations, circular_only, join_contemporary, so
 	
 	# make sure all p_values are unique within contemporary and chronostrat relations (needed for looking up edge labels)
 	p_included_by, p_same_as = update_vars([p_included_by, p_same_as])
-	p_cut_by, p_covered_by, p_abutted_by, p_overlaps = update_vars([p_cut_by, p_covered_by, p_abutted_by, p_overlaps])
+	p_cut_by, p_covered_by, p_abutted_by, p_filled_by, p_excludes = update_vars([p_cut_by, p_covered_by, p_abutted_by, p_filled_by, p_excludes])
 	
 	names_contemporary = {
 		p_included_by: "Included by",
@@ -360,10 +361,11 @@ def get_graph_elements(features, relations, circular_only, join_contemporary, so
 		p_cut_by: "Cut by",
 		p_covered_by: "Covered by",
 		p_abutted_by: "Abutted by",
-		p_overlaps: "Overlaps",
+		p_filled_by: "Filled by",
+		p_excludes: "Excludes",
 	}
 	
-	contexts, contemporary, chronostrat, contemporary_set = get_contexts(relations, p_included_by = p_included_by, p_same_as = p_same_as, p_cut_by = p_cut_by, p_covered_by = p_covered_by, p_abutted_by = p_abutted_by)
+	contexts, contemporary, chronostrat, contemporary_set = get_contexts(relations, p_included_by = p_included_by, p_same_as = p_same_as, p_cut_by = p_cut_by, p_covered_by = p_covered_by, p_abutted_by = p_abutted_by, p_filled_by = p_filled_by, p_excludes = p_excludes)
 	circulars = find_circulars(contemporary, chronostrat)
 	
 	if circular_only:

@@ -220,9 +220,12 @@ class MainWindow(QtWidgets.QMainWindow):
 				rel_dep = "covered_by"
 			elif (rel, subtype) == ("Earlier than", "Abutted by"):
 				rel_dep = "abutted_by"
-			elif (rel, subtype) == ("Non-contemporary", "Overlaps"):
-				rel_dep = "overlaps"
+			elif (rel, subtype) == ("Earlier than", "Filled by"):
+				rel_dep = "filled_by"
+			elif (rel, subtype) == ("Non-contemporary", "Excludes"):
+				rel_dep = "excludes"
 			else:
+				print("NOT FOUND:", rel, subtype)  # DEBUG
 				continue
 			
 			context_obj_lookup[context1].add_relation(rel_dep, context_obj_lookup[context2])

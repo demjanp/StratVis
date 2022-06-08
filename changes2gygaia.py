@@ -18,7 +18,8 @@ STRAT_LOOKUP = {
 	"Cut by": ["Earlier than", "Cut by"],
 	"Covered by": ["Earlier than", "Covered by"],
 	"Abutted by": ["Earlier than", "Abutted by"],
-	"Overlaps": ["Non-contemporary", "Overlaps"],
+	"Filled by": ["Earlier than", "Filled by"],
+	"Excludes": ["Non-contemporary", "Excludes"],
 }
 
 class MainWindow(QtWidgets.QMainWindow):

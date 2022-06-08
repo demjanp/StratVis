@@ -7,9 +7,10 @@ REL_VALUES = [
 	["cut_by", "Cut by"],
 	["covered_by", "Covered by"],
 	["abutted_by", "Abutted by"],
+	["filled_by", "Filled by"],
 	["included_by", "Included by"],
 	["same_as", "Same as"],
-	["overlaps", "Overlaps"],
+	["excludes", "Excludes"],
 ]
 
 class AddRelationDialog(Dialog):
